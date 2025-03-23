@@ -15,7 +15,7 @@ if backend is None:
 
 # Locate WASM file
 project_root = pathlib.Path(__file__).parent.resolve()
-wasm_file = project_root / "button_light3.wasm"  # ✅ CHANGED HERE
+wasm_file = project_root / "button_light4.wasm"  # ✅ CHANGED HERE
 
 # Connect to FreeWili
 print("🔎 Connecting to FreeWili...")

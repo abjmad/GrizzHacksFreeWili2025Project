@@ -34,8 +34,17 @@
 #define TIME_LIMIT 10000  // 10 seconds (10000 milliseconds)
 #define MAX_SCORE_LEDS 7  // 7 LEDs to represent the score in binary
 
-// Define the available colors
-uint32_t available_colors[] = {COLOR_YELLOW, COLOR_BLUE, COLOR_WHITE, COLOR_GREEN};
+uint32_t color_pattern[] = {
+    COLOR_YELLOW, COLOR_BLUE, COLOR_YELLOW, COLOR_BLUE, COLOR_YELLOW, COLOR_WHITE,
+    COLOR_WHITE, COLOR_YELLOW, COLOR_GREEN, COLOR_BLUE, COLOR_WHITE, COLOR_YELLOW,
+    COLOR_GREEN, COLOR_YELLOW, COLOR_BLUE, COLOR_GREEN, COLOR_WHITE, COLOR_GREEN,
+    COLOR_BLUE, COLOR_YELLOW, COLOR_WHITE, COLOR_GREEN, COLOR_YELLOW, COLOR_BLUE,
+    COLOR_YELLOW, COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW, COLOR_WHITE, COLOR_GREEN,
+    COLOR_WHITE, COLOR_YELLOW, COLOR_GREEN, COLOR_YELLOW, COLOR_GREEN, COLOR_YELLOW,
+    COLOR_BLUE, COLOR_GREEN, COLOR_WHITE, COLOR_YELLOW, COLOR_BLUE, COLOR_GREEN,
+    COLOR_YELLOW, COLOR_BLUE, COLOR_WHITE, COLOR_YELLOW, COLOR_GREEN, COLOR_BLUE,
+    COLOR_GREEN, COLOR_YELLOW
+};
 
 // Declare startTime variable to track the time
 unsigned long startTime;  // Store the start time for the timer
@@ -65,6 +74,8 @@ GameButton game_buttons[5] = {
 uint32_t background_color = COLOR_YELLOW;  // Start with yellow background
 int color_change_count = 0;  // Track the number of color changes
 int score = 0;  // Track the score
+int total_steps = 50;  // Total number of steps in the sequence (50)
+int current_step = 0;  // Current step in the pattern
 bool scoringPhase = true;  // Flag to control scoring phase
 
 int getButtonPress() {
@@ -98,17 +109,21 @@ void updateBackground() {
     showPanel(0);
 }
 
-// Function to change the background color randomly
+// Function to change the background color based on the fixed 50-step pattern
 void changeBackgroundColor() {
-
-    // Pick a random color from the available colors
-    int randomIndex = rand() % 4;  // Get a random index between 0 and 3
-
-    // Set the background color to the randomly selected one
-    background_color = available_colors[randomIndex];
+    // Set the background color to the current color in the pattern
+    background_color = color_pattern[current_step];
 
     // Update the background to reflect the new color
     updateBackground();
+
+    // Increment the step counter
+    current_step++;
+
+    // If we've reached the end of the 50 steps, reset the step counter
+    if (current_step == total_steps) {
+        current_step = 0;  // Reset to the first step to repeat the sequence
+    }
 }
 
 // Function to check if the pressed button is correct

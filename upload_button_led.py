@@ -15,7 +15,7 @@ if backend is None:
 
 # Locate WASM file
 project_root = pathlib.Path(__file__).parent.resolve()
-wasm_file = project_root / "button_led.wasm"
+wasm_file = project_root / "button_light1.wasm"  # ✅ CHANGED HERE
 
 # Connect to FreeWili
 print("🔎 Connecting to FreeWili...")
@@ -33,4 +33,4 @@ device.send_file(wasm_file, None, None).expect("Failed to upload")
 print(f"▶️ Running: {wasm_file.name}")
 device.run_script(wasm_file.name).expect("Failed to run")
 
-print("🚀 Done! Press the green button to light up LED 0.")
+print("🚀 Done! FreeWili is now running button_light.wasm.")

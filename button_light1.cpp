@@ -1,29 +1,39 @@
 #include "fwwasm.h"
 #include <stdint.h>  // Include the standard integer types
+#include <bitset>    // For binary conversion
 
 #define COLOR_RED 0x990000
 #define COLOR_YELLOW 0x999900
 #define COLOR_GREEN 0x009900
 #define COLOR_BLUE 0x000099
+#define COLOR_PINK 0xFF66CC  // Pink for endgame phase
+#define COLOR_WHITE 0xFFFFFF // White for displaying score
 
 #define GET_RED(x) ((x >> 16) & 0xFF)
 #define GET_GREEN(x) ((x >> 8) & 0xFF)
 #define GET_BLUE(x) (x & 0xFF)
 
-#define LED_RED 5
-#define LED_YEL 2
-#define LED_GRE 3
-#define LED_BLU 4
+// Define all LED indexes for clarity
+#define LED_1 0
+#define LED_2 1
+#define LED_3 2
+#define LED_4 3
+#define LED_5 4
+#define LED_6 5
+#define LED_7 6
 
 #define RED_IDX 0
-#define YEL_IDX 1
-#define GRN_IDX 2
-#define BLU_IDX 3
-#define GRA_IDX 4
+#define YEL_IDX 1  // Yellow button index
+#define GRN_IDX 2  // Green button index
+#define BLU_IDX 3  // Blue button index
+#define GRA_IDX 4  // Gray button index
 
 #define BUT_NONE -1
 #define TIME_LIMIT 10000  // 10 seconds (10000 milliseconds)
 #define MAX_SCORE_LEDS 7  // 7 LEDs to represent the score in binary
+
+// Declare startTime variable to track the time
+unsigned long startTime;  // Store the start time for the timer
 
 // Define the GameButton struct
 struct GameButton {
@@ -40,17 +50,17 @@ struct GameButton {
 
 // Declare the array of GameButton and manually initialize each element
 GameButton game_buttons[5] = {
-    GameButton(220.0f, COLOR_RED, RED_IDX, LED_RED, FWGUI_EVENT_RED_BUTTON),
-    GameButton(110.0f, COLOR_YELLOW, YEL_IDX, LED_YEL, FWGUI_EVENT_YELLOW_BUTTON),
-    GameButton(138.59f, COLOR_GREEN, GRN_IDX, LED_GRE, FWGUI_EVENT_GREEN_BUTTON),
-    GameButton(164.81f, COLOR_BLUE, BLU_IDX, LED_BLU, FWGUI_EVENT_BLUE_BUTTON),
-    GameButton(0.0f, 0x808080, GRA_IDX, LED_YEL, FWGUI_EVENT_GRAY_BUTTON)  // Gray button with custom LED value (gray color)
+    GameButton(220.0f, COLOR_RED, RED_IDX, LED_1, FWGUI_EVENT_RED_BUTTON),
+    GameButton(110.0f, COLOR_YELLOW, YEL_IDX, LED_2, FWGUI_EVENT_YELLOW_BUTTON),
+    GameButton(138.59f, COLOR_GREEN, GRN_IDX, LED_3, FWGUI_EVENT_GREEN_BUTTON),
+    GameButton(164.81f, COLOR_BLUE, BLU_IDX, LED_4, FWGUI_EVENT_BLUE_BUTTON),
+    GameButton(0.0f, 0x808080, GRA_IDX, LED_5, FWGUI_EVENT_GRAY_BUTTON)  // Gray button with custom LED value (gray color)
 };
 
 uint32_t background_color = COLOR_YELLOW;  // Start with yellow background
 int color_change_count = 0;  // Track the number of color changes
 int score = 0;  // Track the score
-unsigned long startTime;  // Start time to track 10 seconds
+bool scoringPhase = true;  // Flag to control scoring phase
 
 int getButtonPress() {
     int retval = BUT_NONE;
@@ -64,20 +74,26 @@ int getButtonPress() {
     return retval;
 }
 
+// Function to turn off all LEDs
 void turnOffAllLEDs() {
     // Turn off all LEDs
-    setBoardLED(LED_RED, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
-    setBoardLED(LED_YEL, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
-    setBoardLED(LED_GRE, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
-    setBoardLED(LED_BLU, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
+    setBoardLED(LED_1, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
+    setBoardLED(LED_2, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
+    setBoardLED(LED_3, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
+    setBoardLED(LED_4, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
+    setBoardLED(LED_5, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
+    setBoardLED(LED_6, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
+    setBoardLED(LED_7, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);
 }
 
+// Function to update the background
 void updateBackground() {
     // Use addPanel() and showPanel() to update the background color
     addPanel(0, 1, 0, 0, 0, GET_RED(background_color), GET_GREEN(background_color), GET_BLUE(background_color), 1);
     showPanel(0);
 }
 
+// Function to change the background color
 void changeBackgroundColor() {
     // Cycle through the colors: yellow -> blue -> green -> yellow
     if (background_color == COLOR_YELLOW) {
@@ -89,9 +105,10 @@ void changeBackgroundColor() {
     }
 
     // Increment the change counter
-    color_change_count++;
+    // score++;
 }
 
+// Function to check if the pressed button is correct
 void checkCorrectButton(int pressed) {
     // Check if the pressed button matches the current background color
     if ((background_color == COLOR_YELLOW && pressed == YEL_IDX) ||
@@ -101,79 +118,88 @@ void checkCorrectButton(int pressed) {
     }
 }
 
-void displayScore() {
-    // Display the score in binary using the LEDs
-    for (int i = 0; i < MAX_SCORE_LEDS; i++) {
-        // Check if the bit is 1 and light up the LED accordingly
-        if ((score >> i) & 1) {
-            setBoardLED(i, 255, 255, 255, 255, LEDManagerLEDMode::ledpulsefade);  // Light up LED if bit is 1
-        } else {
-            setBoardLED(i, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);  // Turn off LED if bit is 0
-        }
+// Function to convert the decimal score to a 7-bit binary value and light up LEDs
+void displayBinaryOnLED(int score) {
+    // Ensure the score is within the 7-bit range (0 to 127)
+    if (score < 0 || score > 127) {
+        return;  // Invalid score, do nothing
     }
-}
 
-void flashButtonLED(int pressed) {
-    // Flash the LED corresponding to the button pressed
-    if (pressed == YEL_IDX) {
-        setBoardLED(LED_YEL, 255, 255, 0, 255, LEDManagerLEDMode::ledpulsefade);
-    } else if (pressed == BLU_IDX) {
-        setBoardLED(LED_BLU, 0, 0, 255, 255, LEDManagerLEDMode::ledpulsefade);
-    } else if (pressed == GRN_IDX) {
-        setBoardLED(LED_GRE, 0, 255, 0, 255, LEDManagerLEDMode::ledpulsefade);
+    // Convert the score to a 7-bit binary representation
+    std::bitset<7> binaryValue(score);
+
+    // Loop through each bit and control the corresponding LED
+    for (int i = 0; i < 7; i++) {
+        if (binaryValue[i] == 1) {
+            // Turn ON the LED if the bit is 0 (inverted logic)
+            setBoardLED(i, 255, 255, 255, 1000, LEDManagerLEDMode::ledsimplevalue);  // White color for ON
+        } else {
+            // Turn OFF the LED if the bit is 1 (inverted logic)
+            setBoardLED(i, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);  // Off
+        }
     }
 }
 
 int main() {
     startTime = millis();  // Record the start time when the program begins
 
-    while (true) {
-        turnOffAllLEDs();  // Turn off all LEDs first
-
+    // Active Phase (Scoring Phase)
+    while (scoringPhase) {
         // Update the background with the current color
         updateBackground();
 
-        // Check if 10 seconds have passed
+        // Display the binary score on LEDs during the scoring phase
+        displayBinaryOnLED(score);
+
+        // Check if 10 seconds have passed, and enter endgame phase
         if (millis() - startTime >= TIME_LIMIT) {
-            // End the program after 10 seconds, enter the endgame phase
-            break;
+            scoringPhase = false;  // End the scoring phase
+            background_color = COLOR_PINK;  // Change background to pink for the endgame phase
         }
 
         if (hasEvent()) {
             int pressed = getButtonPress();
 
-            // Check if gray button (GRA_IDX) is pressed, exit the program
+            // Check if gray button (GRA_IDX) is pressed, exit the scoring phase
             if (pressed == GRA_IDX) {
-                break;  // Exit the loop and end the program
+                break;  // Exit the loop and end the program (if necessary)
             }
 
-            // Change background color when a color button is pressed
-            if (pressed == YEL_IDX || pressed == BLU_IDX || pressed == GRN_IDX) {
+            // Check if the button press is correct (only if in scoring phase)
+            if (scoringPhase) {
+                checkCorrectButton(pressed);
+            }
+
+            // Change background color when a color button is pressed (only if in scoring phase)
+            if (scoringPhase && (pressed == YEL_IDX || pressed == BLU_IDX || pressed == GRN_IDX)) {
                 changeBackgroundColor();
-                flashButtonLED(pressed);  // Flash the LED corresponding to the button pressed
             }
-
-            // Check if the button press is correct
-            checkCorrectButton(pressed);
 
         }
 
         waitms(100);  // Add a small delay to control update frequency
     }
 
-    // Endgame phase: Display the score using LEDs
-    displayScore();
+    // Transition to Endgame Phase
+    // This code runs only once, right after the scoring phase ends
+    background_color = COLOR_PINK;  // Set background to pink for endgame
+    updateBackground();  // Ensure the panel shows the pink background for the endgame phase
 
-    // Wait for the gray button press to exit the program
-    while (true) {
+    // Display the binary score on LEDs once at the end of the scoring phase
+    displayBinaryOnLED(score);
+
+    // Wait for the gray button press to exit the game
+    while (!scoringPhase) {
+        // Do nothing, LEDs are now in the final state
         if (hasEvent()) {
             int pressed = getButtonPress();
             if (pressed == GRA_IDX) {
-                break;  // Exit the program when the gray button is pressed
+                break;  // Exit the loop and end the game
             }
         }
-        waitms(100);
+
+        waitms(100);  // Add a small delay to control update frequency
     }
 
-    return 0;
+    return 0;  // Return an integer value (typically 0 for successful execution)
 }

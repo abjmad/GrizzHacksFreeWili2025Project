@@ -240,6 +240,7 @@ int main() {
             if (pressed == RED_IDX) {
                 // Red button is pressed, turn off all lights and exit the program
                 turnOffAllLEDs();  // Turn off all LEDs
+                break;  // Exit the loop and close the program
             }
         }
 

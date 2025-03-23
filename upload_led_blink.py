@@ -15,7 +15,7 @@ if backend is None:
 
 # === Resolve paths ===
 project_root = pathlib.Path(__file__).parent.resolve()
-wasm_file = project_root / "tilt_led.wasm"
+wasm_file = project_root / "launcher.wasm"
 fwi_file = project_root / "pip_boy.fwi"
 radio_dir = project_root / "radio"
 sub_files = ["red", "blue", "green", "yellow", "white", "off"]

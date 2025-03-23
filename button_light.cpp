@@ -78,9 +78,6 @@ void setup()
     game_buttons[3].led_position = LED_BLU;
     game_buttons[3].button_event = FWGUI_EVENT_BLUE_BUTTON;
     game_buttons[3].index = BLU_IDX;
-
-    // addPanel(0, 1, 0, 0, 0, 0xFF, 0xAA, 0xCC, 1); // Commented out: panel display
-    // showPanel(0); // Commented out
 }
 
 int main()
@@ -100,7 +97,7 @@ int main()
             }
             else if (pressed == GRA_IDX)
             {
-                break; // Exit if gray is pressed
+                setBoardLED(0, 128, 128, 128, 300, LEDManagerLEDMode::ledpulsefade);
             }
         }
         waitms(100);

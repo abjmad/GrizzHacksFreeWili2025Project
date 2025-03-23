@@ -15,15 +15,17 @@ if backend is None:
 
 # === Resolve paths ===
 project_root = pathlib.Path(__file__).parent.resolve()
-wasm_file = project_root / "launcher.wasm"
 fwi_file = project_root / "pip_boy.fwi"
 radio_dir = project_root / "radio"
 sub_files = ["red", "blue", "green", "yellow", "white", "off"]
 
-# === Check for main .wasm file ===
-if not wasm_file.exists():
-    print(f"❌ Missing: {wasm_file.name}")
-    exit(1)
+# === Scripts to upload ===
+wasm_files = [
+    "menu.wasm",
+    "tilt_led.wasm",
+    "battleship.wasm",
+    "stats.wasm"
+]
 
 # === Connect to FreeWili safely ===
 print("🔎 Scanning for FreeWili...")
@@ -37,11 +39,12 @@ device = device_result.unwrap()
 print(f"✅ Connected to FreeWili: {device}")
 
 # === Upload optional FWI file ===
-if fwi_file.exists():
-    print(f"📤 Uploading: {fwi_file.name}")
-    device.send_file(fwi_file, None, None).expect("Failed to upload FWI")
+#if fwi_file.exists():
+#    print(f"📤 Uploading: {fwi_file.name}")
+#    device.send_file(fwi_file, None, None).expect("Failed to upload FWI")
 
-# === Upload radio sub files ===
+# === Upload radio sub files (optional) ===
+'''
 for name in sub_files:
     sub_path = radio_dir / f"{name}.sub"
     if sub_path.exists():
@@ -49,12 +52,19 @@ for name in sub_files:
         device.send_file(sub_path, None, None).expect(f"Failed to upload {name}.sub")
     else:
         print(f"⚠️ Missing sub: {sub_path.name}")
+'''
+# === Upload all WASM files ===
+for filename in wasm_files:
+    wasm_path = project_root / filename
+    if wasm_path.exists():
+        print(f"📤 Uploading: {filename}")
+        device.send_file(wasm_path, None, None).expect(f"Failed to upload {filename}")
+    else:
+        print(f"❌ Missing: {filename}")
+        exit(1)
 
-# === Upload and run the .wasm file ===
-print(f"📤 Uploading: {wasm_file.name}")
-device.send_file(wasm_file, None, None).expect(f"Failed to upload {wasm_file.name}")
+# === Run the menu launcher ===
+print(f"▶️ Running: menu.wasm")
+device.run_script("menu.wasm").expect("Failed to run menu.wasm")
 
-print(f"▶️ Running: {wasm_file.name}")
-device.run_script(wasm_file.name).expect(f"Failed to run {wasm_file.name}")
-
-print("🚀 Upload complete! Your FreeWili is running the script!")
+print("🚀 Upload complete! Menu is running on your FreeWili!")

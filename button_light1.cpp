@@ -1,6 +1,8 @@
 #include "fwwasm.h"
 #include <stdint.h>  // Include the standard integer types
 #include <bitset>    // For binary conversion
+#include <cstdlib>  // For rand() and srand()
+#include <ctime>    // For time() to seed random number generator
 
 #define COLOR_RED 0x990000
 #define COLOR_YELLOW 0x999900
@@ -31,6 +33,10 @@
 #define BUT_NONE -1
 #define TIME_LIMIT 10000  // 10 seconds (10000 milliseconds)
 #define MAX_SCORE_LEDS 7  // 7 LEDs to represent the score in binary
+
+uint32_t available_colors[] = {COLOR_YELLOW, COLOR_BLUE, COLOR_WHITE, COLOR_GREEN};
+uint32_t color_order[4];  // Array to hold the random order of colors
+int color_index = 0;  // Index to keep track of the current color
 
 // Declare startTime variable to track the time
 unsigned long startTime;  // Store the start time for the timer
@@ -74,6 +80,25 @@ int getButtonPress() {
     return retval;
 }
 
+// Function to shuffle the available colors randomly
+void shuffleColors() {
+    // Shuffle the available_colors array
+    for (int i = 0; i < 4; i++) {
+        color_order[i] = available_colors[i];
+    }
+
+    // Seed the random number generator (do this once in setup or start)
+    srand(time(0));  // Seed the random number generator with the current time
+
+    // Fisher-Yates shuffle algorithm
+    for (int i = 3; i > 0; i--) {
+        int j = rand() % (i + 1);
+        uint32_t temp = color_order[i];
+        color_order[i] = color_order[j];
+        color_order[j] = temp;
+    }
+}
+
 // Function to turn off all LEDs
 void turnOffAllLEDs() {
     // Turn off all LEDs
@@ -93,19 +118,22 @@ void updateBackground() {
     showPanel(0);
 }
 
+// Global variable to track the last background color
+uint32_t last_background_color = COLOR_YELLOW;  // Initialize with any color
+
 // Function to change the background color
 void changeBackgroundColor() {
-    // Cycle through the colors: yellow -> blue -> green -> yellow
-    if (background_color == COLOR_YELLOW) {
-        background_color = COLOR_BLUE;
-    } else if (background_color == COLOR_BLUE) {
-        background_color = COLOR_GREEN;
-    } else if (background_color == COLOR_GREEN) {
-        background_color = COLOR_YELLOW;
+    // If we've used all 4 colors, reshuffle the colors
+    if (color_index == 4) {
+        shuffleColors();
+        color_index = 0;  // Reset the index after reshuffling
     }
 
-    // Increment the change counter
-    // score++;
+    // Set the background color to the next color in the shuffled order
+    background_color = color_order[color_index];
+
+    // Move to the next color in the shuffled order
+    color_index++;
 }
 
 // Function to check if the pressed button is correct
@@ -113,7 +141,8 @@ void checkCorrectButton(int pressed) {
     // Check if the pressed button matches the current background color
     if ((background_color == COLOR_YELLOW && pressed == YEL_IDX) ||
         (background_color == COLOR_BLUE && pressed == BLU_IDX) ||
-        (background_color == COLOR_GREEN && pressed == GRN_IDX)) {
+        (background_color == COLOR_GREEN && pressed == GRN_IDX) ||
+        (background_color == COLOR_WHITE && pressed == GRA_IDX)) {  // GRA_IDX now corresponds to white background
         score++;  // Increment score for a correct press
     }
 }
@@ -160,21 +189,15 @@ int main() {
         if (hasEvent()) {
             int pressed = getButtonPress();
 
-            // Check if gray button (GRA_IDX) is pressed, exit the scoring phase
-            if (pressed == GRA_IDX) {
-                break;  // Exit the loop and end the program (if necessary)
-            }
-
             // Check if the button press is correct (only if in scoring phase)
             if (scoringPhase) {
-                checkCorrectButton(pressed);
+                checkCorrectButton(pressed);  // This will increment the score if the correct button is pressed
             }
 
             // Change background color when a color button is pressed (only if in scoring phase)
-            if (scoringPhase && (pressed == YEL_IDX || pressed == BLU_IDX || pressed == GRN_IDX)) {
+            if (scoringPhase && (pressed == YEL_IDX || pressed == BLU_IDX || pressed == GRN_IDX || pressed == GRA_IDX)) {
                 changeBackgroundColor();
             }
-
         }
 
         waitms(100);  // Add a small delay to control update frequency
@@ -194,7 +217,7 @@ int main() {
         if (hasEvent()) {
             int pressed = getButtonPress();
             if (pressed == GRA_IDX) {
-                break;  // Exit the loop and end the game
+                break;  // Exit the loop and end the game (gray button doesn't stop the function)
             }
         }
 

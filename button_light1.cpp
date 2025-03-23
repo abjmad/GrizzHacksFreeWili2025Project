@@ -46,6 +46,11 @@ uint32_t color_pattern[] = {
     COLOR_GREEN, COLOR_YELLOW
 };
 
+// Define the countdown colors (Red, Yellow, Green, Blue)
+uint32_t countdown_colors[] = {COLOR_RED, COLOR_YELLOW, COLOR_GREEN, COLOR_BLUE};
+
+uint32_t countdown_purple = 0x800080; // Purple color
+
 // Declare startTime variable to track the time
 unsigned long startTime;  // Store the start time for the timer
 
@@ -109,6 +114,23 @@ void updateBackground() {
     showPanel(0);
 }
 
+// Function to perform the countdown affecting the LEDs
+void countdown() {
+    for (int i = 0; i < 4; i++) {
+        // Set all LEDs to the current countdown color
+        setBoardLED(LED_1, GET_RED(countdown_colors[i]), GET_GREEN(countdown_colors[i]), GET_BLUE(countdown_colors[i]), 1000, LEDManagerLEDMode::ledsimplevalue);
+        setBoardLED(LED_2, GET_RED(countdown_colors[i]), GET_GREEN(countdown_colors[i]), GET_BLUE(countdown_colors[i]), 1000, LEDManagerLEDMode::ledsimplevalue);
+        setBoardLED(LED_3, GET_RED(countdown_colors[i]), GET_GREEN(countdown_colors[i]), GET_BLUE(countdown_colors[i]), 1000, LEDManagerLEDMode::ledsimplevalue);
+        setBoardLED(LED_4, GET_RED(countdown_colors[i]), GET_GREEN(countdown_colors[i]), GET_BLUE(countdown_colors[i]), 1000, LEDManagerLEDMode::ledsimplevalue);
+        setBoardLED(LED_5, GET_RED(countdown_colors[i]), GET_GREEN(countdown_colors[i]), GET_BLUE(countdown_colors[i]), 1000, LEDManagerLEDMode::ledsimplevalue);
+        setBoardLED(LED_6, GET_RED(countdown_colors[i]), GET_GREEN(countdown_colors[i]), GET_BLUE(countdown_colors[i]), 1000, LEDManagerLEDMode::ledsimplevalue);
+        setBoardLED(LED_7, GET_RED(countdown_colors[i]), GET_GREEN(countdown_colors[i]), GET_BLUE(countdown_colors[i]), 1000, LEDManagerLEDMode::ledsimplevalue);
+
+        // Wait for 1 second (1000 milliseconds) before changing the color
+        waitms(1000);
+    }
+}
+
 // Function to change the background color based on the fixed 50-step pattern
 void changeBackgroundColor() {
     // Set the background color to the current color in the pattern
@@ -151,7 +173,7 @@ void displayBinaryOnLED(int score) {
     for (int i = 0; i < 7; i++) {
         if (binaryValue[i] == 1) {
             // Turn ON the LED if the bit is 0 (inverted logic)
-            setBoardLED(i, 255, 255, 255, 1000, LEDManagerLEDMode::ledsimplevalue);  // White color for ON
+            setBoardLED(i, 0, 255, 0, 700, LEDManagerLEDMode::ledsimplevalue);  // White color for ON
         } else {
             // Turn OFF the LED if the bit is 1 (inverted logic)
             setBoardLED(i, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);  // Off
@@ -160,17 +182,26 @@ void displayBinaryOnLED(int score) {
 }
 
 int main() {
-        srand(time(0));  // Seed the random number generator once at the start
+    // Perform countdown before the main game starts
+    countdown();  // This will show Red, Yellow, Green, Blue on LEDs for 1 second each
 
-    startTime = millis();  // Record the start time when the program begins
+    // Now start the main 10-second timer
+    startTime = millis();  // Record the start time when the timer begins
+    unsigned long countdown_start = millis();  // Store the start time of the countdown
+    int lights_left = 7;  // Number of lights still on (representing time left)
 
     // Active Phase (Scoring Phase)
     while (scoringPhase) {
         // Update the background with the current color
         updateBackground();
 
-        // Display the binary score on LEDs during the scoring phase
-        displayBinaryOnLED(score);
+        // Display the remaining time using purple lights
+        // Turn off one light every 1.428 seconds (total 10 seconds / 7 lights)
+        if ((millis() - countdown_start) >= (10000 / 7) * (7 - lights_left)) {
+            // Turn off the light at the current position
+            setBoardLED(7 - lights_left, 0, 0, 0, 0, LEDManagerLEDMode::ledpulsefade);  // Turn off the LED
+            lights_left--;  // Decrease the number of lights left
+        }
 
         // Check if 10 seconds have passed, and enter endgame phase
         if (millis() - startTime >= TIME_LIMIT) {
@@ -196,20 +227,19 @@ int main() {
     }
 
     // Transition to Endgame Phase
-    // This code runs only once, right after the scoring phase ends
     background_color = COLOR_PINK;  // Set background to pink for endgame
     updateBackground();  // Ensure the panel shows the pink background for the endgame phase
 
     // Display the binary score on LEDs once at the end of the scoring phase
     displayBinaryOnLED(score);
 
-    // Wait for the gray button press to exit the game
-    while (!scoringPhase) {
-        // Do nothing, LEDs are now in the final state
+    // Wait for the red button press to exit the game
+    while (true) {
         if (hasEvent()) {
             int pressed = getButtonPress();
-            if (pressed == GRA_IDX) {
-                break;  // Exit the loop and end the game (gray button doesn't stop the function)
+            if (pressed == RED_IDX) {
+                // Red button is pressed, turn off all lights and exit the program
+                turnOffAllLEDs();  // Turn off all LEDs
             }
         }
 

@@ -1,8 +1,8 @@
 #include "fwwasm.h"
 #include <stdint.h>  // Include the standard integer types
 #include <bitset>    // For binary conversion
-#include <cstdlib>  // For rand() and srand()
-#include <ctime>    // For time() to seed random number generator
+#include <cstdlib>   // For rand() and srand()
+#include <ctime>     // For time() to seed random number generator
 
 #define COLOR_RED 0x990000
 #define COLOR_YELLOW 0x999900
@@ -34,9 +34,8 @@
 #define TIME_LIMIT 10000  // 10 seconds (10000 milliseconds)
 #define MAX_SCORE_LEDS 7  // 7 LEDs to represent the score in binary
 
+// Define the available colors
 uint32_t available_colors[] = {COLOR_YELLOW, COLOR_BLUE, COLOR_WHITE, COLOR_GREEN};
-uint32_t color_order[4];  // Array to hold the random order of colors
-int color_index = 0;  // Index to keep track of the current color
 
 // Declare startTime variable to track the time
 unsigned long startTime;  // Store the start time for the timer
@@ -80,25 +79,6 @@ int getButtonPress() {
     return retval;
 }
 
-// Function to shuffle the available colors randomly
-void shuffleColors() {
-    // Shuffle the available_colors array
-    for (int i = 0; i < 4; i++) {
-        color_order[i] = available_colors[i];
-    }
-
-    // Seed the random number generator (do this once in setup or start)
-    srand(time(0));  // Seed the random number generator with the current time
-
-    // Fisher-Yates shuffle algorithm
-    for (int i = 3; i > 0; i--) {
-        int j = rand() % (i + 1);
-        uint32_t temp = color_order[i];
-        color_order[i] = color_order[j];
-        color_order[j] = temp;
-    }
-}
-
 // Function to turn off all LEDs
 void turnOffAllLEDs() {
     // Turn off all LEDs
@@ -118,22 +98,17 @@ void updateBackground() {
     showPanel(0);
 }
 
-// Global variable to track the last background color
-uint32_t last_background_color = COLOR_YELLOW;  // Initialize with any color
-
-// Function to change the background color
+// Function to change the background color randomly
 void changeBackgroundColor() {
-    // If we've used all 4 colors, reshuffle the colors
-    if (color_index == 4) {
-        shuffleColors();
-        color_index = 0;  // Reset the index after reshuffling
-    }
 
-    // Set the background color to the next color in the shuffled order
-    background_color = color_order[color_index];
+    // Pick a random color from the available colors
+    int randomIndex = rand() % 4;  // Get a random index between 0 and 3
 
-    // Move to the next color in the shuffled order
-    color_index++;
+    // Set the background color to the randomly selected one
+    background_color = available_colors[randomIndex];
+
+    // Update the background to reflect the new color
+    updateBackground();
 }
 
 // Function to check if the pressed button is correct
@@ -170,6 +145,8 @@ void displayBinaryOnLED(int score) {
 }
 
 int main() {
+        srand(time(0));  // Seed the random number generator once at the start
+
     startTime = millis();  // Record the start time when the program begins
 
     // Active Phase (Scoring Phase)
